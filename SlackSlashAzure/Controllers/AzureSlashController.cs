@@ -9,7 +9,7 @@ using SlackSlashAzure.Models;
 
 namespace SlackSlashAzure.Controllers
 {
-    public class SlashRequestController : ApiController
+    public class AzureSlashRequestController : ApiController
     {
         public IHttpActionResult Post(SlashRequest req)
         {
