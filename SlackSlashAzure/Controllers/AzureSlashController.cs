@@ -28,7 +28,7 @@ namespace SlackSlashAzure.Controllers
                 return Ok(new SlashResponse() { text = $"Sorry, I don't know how to `{req.command} {req.text}`" });
             }
 
-            var resp = new SlashResponse() { text = $"Getting data from Azure...", response_type = "in_channel" };
+            var resp = new SlashResponse() { text = $"_Getting data from Azure..._", response_type = "in_channel" };
             HostingEnvironment.QueueBackgroundWorkItem(ct => GetDataWarehousesFromAzure(req.response_url));
 
             return Ok(resp);
