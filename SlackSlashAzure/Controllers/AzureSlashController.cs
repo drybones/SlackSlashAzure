@@ -6,6 +6,10 @@ using System.Net.Http;
 using System.Web.Http;
 
 using SlackSlashAzure.Models;
+using Redgate.Azure.ResourceManangement;
+using System.Threading;
+using System.Web.Hosting;
+using System.Configuration;
 
 namespace SlackSlashAzure.Controllers
 {
@@ -13,8 +17,44 @@ namespace SlackSlashAzure.Controllers
     {
         public IHttpActionResult Post(SlashRequest req)
         {
-            var resp = new SlashResponse() { text = $"You said {req.command} {req.text}\nBut did you really mean it?" };
+            string[] sep = new string[] { ",", ", ", " " };
+            if (!ConfigurationManager.AppSettings["slack:validTokens"].Split(sep, StringSplitOptions.RemoveEmptyEntries).Contains(req.token))
+            {
+                return Unauthorized();
+            }
+
+            if(req.command != "/azure" || req.text.Trim() != "dw")
+            {
+                return Ok(new SlashResponse() { text = $"Sorry, I don't know how to `{req.command} {req.text}`" });
+            }
+
+            var resp = new SlashResponse() { text = $"Getting data from Azure...", response_type = "in_channel" };
+            HostingEnvironment.QueueBackgroundWorkItem(ct => GetDataWarehousesFromAzure(req.response_url));
+
             return Ok(resp);
+        }
+
+        private void GetDataWarehousesFromAzure(string responseUrl)
+        {
+            var dataWarehouses = AzureRMContext.GetDataWarehouses();
+            SlashResponse resp = null;
+
+            if(dataWarehouses.Count() < 1 )
+            {
+                resp = new SlashResponse() { text = "Sorry, didn't find Data Warehouses.", response_type = "in_channel" };
+            }
+            else
+            {
+                resp = new SlashResponse() { response_type = "in_channel" };
+                foreach (var dw in dataWarehouses)
+                {
+                    resp.text += $"{dw.Name} in {dw.Properties.Status}, {dw.Properties.ServiceObjective}\n";
+                }
+            }
+            using (var client = new HttpClient())
+            {
+                client.PostAsJsonAsync(responseUrl, resp);
+            }
         }
     }
 }
