@@ -63,19 +63,29 @@ namespace SlackSlashAzure.Controllers
         {
             var attachment = new SlackAttachment() { title = dw.Name, fallback = $"{dw.Name} {dw.Properties.Status} {dw.Properties.ServiceObjective}" };
 
-            if(dw.Properties.Status == "Paused" || dw.Properties.Status == "Pausing")
+            switch(dw.Properties.Status)
             {
-                attachment.color = "good";
+                case "Paused":
+                case "Pausing":
+                    attachment.color = "good";
+                    break;
+                case "Online":
+                case "Resuming":
+                    // Whitelist the "cheap" plans
+                    if(dw.Properties.ServiceObjective == "DW100" || dw.Properties.ServiceObjective == "DW200")
+                    {
+                        attachment.color = "warning";
+                    }
+                    else
+                    {
+                        attachment.color = "danger";
+                    }
+                    break;
+                case "Scaling":
+                default:
+                    // Leave it gray
+                    break;
             }
-            else if (dw.Properties.Status == "Online" || dw.Properties.ServiceObjective == "DW100" || dw.Properties.ServiceObjective == "DW200")
-            {
-                attachment.color = "warning";
-            }
-            else if(dw.Properties.Status == "Online")
-            {
-                attachment.color = "danger";
-            }
-            // else leave it grey -- not sure what state it's in
 
             var fields = new SlackField[] {
                 new SlackField() { title = "Status", value = dw.Properties.Status, IsShort = true },
