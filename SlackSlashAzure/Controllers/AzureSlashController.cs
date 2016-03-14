@@ -61,7 +61,7 @@ namespace SlackSlashAzure.Controllers
 
         private SlackAttachment CreateAttachmentForDataWarehouse(Database dw)
         {
-            var attachment = new SlackAttachment() { title = dw.Name, fallback = $"{dw.Name} {dw.Properties.Status} {dw.Properties.ServiceObjective}" };
+            var attachment = new SlackAttachment() { title = dw.Name, title_link = $"https://portal.azure.com/#resource{dw.Id}", fallback = $"{dw.Name} {dw.Properties.Status} {dw.Properties.ServiceObjective}" };
 
             switch(dw.Properties.Status)
             {
