@@ -23,7 +23,7 @@ namespace SlackSlashAzure.Controllers
                 return Unauthorized();
             }
 
-            if(req.command != "/azure" || req.text.Trim() != "dw")
+            if(req.command != "/azure" || req.text == null || req.text.Trim() != "dw")
             {
                 return Ok(new SlashResponse() { text = $"Sorry, I don't know how to `{req.command} {req.text}`" });
             }
@@ -34,12 +34,12 @@ namespace SlackSlashAzure.Controllers
             return Ok(resp);
         }
 
-        private void GetDataWarehousesFromAzure(string responseUrl)
+        private async void GetDataWarehousesFromAzure(string responseUrl)
         {
             var dataWarehouses = AzureRMContext.GetDataWarehouses();
             SlashResponse resp = null;
 
-            if(dataWarehouses.Count() < 1 )
+            if(dataWarehouses.Count() < 1)
             {
                 resp = new SlashResponse() { text = "Sorry, didn't find Data Warehouses.", response_type = "in_channel" };
             }
@@ -48,12 +48,12 @@ namespace SlackSlashAzure.Controllers
                 resp = new SlashResponse() { response_type = "in_channel" };
                 foreach (var dw in dataWarehouses)
                 {
-                    resp.text += $"{dw.Name} in {dw.Properties.Status}, {dw.Properties.ServiceObjective}\n";
+                    resp.text += $"{dw.Name}: {dw.Properties.Status} {dw.Properties.ServiceObjective}\n";
                 }
             }
             using (var client = new HttpClient())
             {
-                client.PostAsJsonAsync(responseUrl, resp);
+                await client.PostAsJsonAsync(responseUrl, resp);
             }
         }
     }
