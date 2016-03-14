@@ -232,6 +232,8 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Models\SlackAttachment.cs" />
+    <Compile Include="Models\SlackField.cs" />
     <Compile Include="Models\SlashRequest.cs" />
     <Compile Include="Models\SlashResponse.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
