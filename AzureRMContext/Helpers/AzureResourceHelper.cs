@@ -17,7 +17,7 @@ namespace Redgate.Azure.ResourceManagement.Helpers
         }
         public static string GetResourceGroupUrl(string resourceGroupId)
         {
-            return String.Format(ResourceUrlFormatString, resourceGroupId);
+            return String.Format(ResourceGroupUrlFormatString, resourceGroupId);
         }
     }
 }

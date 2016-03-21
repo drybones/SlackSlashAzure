@@ -46,7 +46,7 @@ namespace SlackSlashAzure.Controllers
             }
             else
             {
-                resp = new SlashResponse() { text = "Here are the data warehouses I found:", response_type = "in_channel" };
+                resp = new SlashResponse() { response_type = "in_channel" };
                 var attachments = new List<SlackAttachment>();
                 foreach (var dw in dataWarehouses)
                 {
