@@ -62,7 +62,7 @@ namespace SlackSlashAzure.Controllers
 
         private SlackAttachment CreateAttachmentForDataWarehouse(Database dw)
         {
-            var attachment = new SlackAttachment() { title = dw.Name, title_link = AzureResourceHelper.GetUrlFromId(dw.Id), fallback = $"{dw.Name} {dw.Status} {dw.ServiceObjective}" };
+            var attachment = new SlackAttachment() { title = dw.Name, title_link = AzureResourceHelper.GetResourceUrl(dw.Id), fallback = $"{dw.Name} {dw.Status} {dw.ServiceObjective}" };
 
             switch(dw.Status)
             {
@@ -91,8 +91,8 @@ namespace SlackSlashAzure.Controllers
             var fields = new SlackField[] {
                 new SlackField() { title = "Status", value = dw.Status, IsShort = true },
                 new SlackField() { title = "Service level", value = dw.ServiceObjective, IsShort = true },
-                new SlackField() { title = "Server", value = $"<{AzureResourceHelper.GetUrlFromId(dw.DatabaseServer.Id)}|{dw.DatabaseServer.Name}>", IsShort = true },
-                new SlackField() { title = "Resource Group", value = $"<{AzureResourceHelper.GetUrlFromId(dw.DatabaseServer.ResourceGroup.Id)}|{dw.DatabaseServer.ResourceGroup.Name}>", IsShort = true }
+                new SlackField() { title = "Server", value = $"<{AzureResourceHelper.GetResourceUrl(dw.DatabaseServer.Id)}|{dw.DatabaseServer.Name}>", IsShort = true },
+                new SlackField() { title = "Resource Group", value = $"<{AzureResourceHelper.GetResourceGroupUrl(dw.DatabaseServer.ResourceGroup.Id)}|{dw.DatabaseServer.ResourceGroup.Name}>", IsShort = true }
             };
             attachment.fields = fields;
             return attachment;
