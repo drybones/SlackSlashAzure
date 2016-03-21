@@ -7,7 +7,7 @@
     <ProjectGuid>{AFDC62B3-5ED1-4D79-B98B-B383B073EBEE}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>AzureRMContext</RootNamespace>
+    <RootNamespace>Redgate.Azure.ResourceManagement</RootNamespace>
     <AssemblyName>AzureRMContext</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -109,6 +109,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AzureRMContext.cs" />
+    <Compile Include="Models\Database.cs" />
+    <Compile Include="Models\DatabaseServer.cs" />
+    <Compile Include="Models\ResourceGroup.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

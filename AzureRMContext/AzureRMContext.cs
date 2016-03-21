@@ -10,8 +10,9 @@ using Microsoft.Azure;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Azure.Management.Resources;
 using Microsoft.Azure.Management.Sql;
-using Microsoft.Azure.Management.Sql.Models;
 using Microsoft.Rest;
+
+using Redgate.Azure.ResourceManagement.Models;
 
 namespace Redgate.Azure.ResourceManangement
 {
@@ -81,14 +82,20 @@ namespace Redgate.Azure.ResourceManangement
                 var tokenCloudCredentials = new TokenCloudCredentials(subscriptionId, authResult.AccessToken);
                 var sqlClient = new SqlManagementClient(tokenCloudCredentials);
 
-                foreach (var resourceGroup in resourceGroups)
+                foreach (var rg in resourceGroups)
                 {
-                    var servers = sqlClient.Servers.List(resourceGroup.Name);
-                    foreach (var server in servers)
+                    var resourceGroup = new ResourceGroup() { Id = rg.Id, Name = rg.Name, Location = rg.Location };
+                    var servers = sqlClient.Servers.List(rg.Name);
+                    foreach (var s in servers)
                     {
-                        var databases = sqlClient.Databases.List(resourceGroup.Name, server.Name);
+                        var databaseServer = new DatabaseServer() { Id = s.Id, Name = s.Name, Location = s.Location, Version = s.Properties.Version, ResourceGroup = resourceGroup };
+                        var databases = sqlClient.Databases.List(rg.Name, s.Name);
                         var warehouses = databases.Where(d => d.Properties.Edition == "DataWarehouse");
-                        results.AddRange(warehouses);
+                        foreach(var w in warehouses)
+                        {
+                            var warehouse = new Database() { Id = w.Id, Name = w.Name, Location = w.Location, Status = w.Properties.Status, Edition = w.Properties.Edition, ServiceObjective = w.Properties.ServiceObjective, DatabaseServer = databaseServer };
+                            results.Add(warehouse);                            
+                        }
                     }
                 }
             }

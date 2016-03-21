@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Azure.Management.Sql.Models;
 
 using Redgate.Azure.ResourceManangement;
 
@@ -16,7 +15,7 @@ namespace AzureRMConsole
             var warehouses = AzureRMContext.GetDataWarehouses();
             foreach (var warehouse in warehouses)
             {
-                Console.WriteLine($"{warehouse.Name}\n{warehouse.Properties.Status}\n{warehouse.Properties.ServiceObjective}\n");
+                Console.WriteLine($"{warehouse.Name}\n{warehouse.Status}\n{warehouse.ServiceObjective}\n{warehouse.DatabaseServer.Name}\n{warehouse.DatabaseServer.ResourceGroup.Name}\n");
             }
             Console.WriteLine("Done. Press any key to close.");
             Console.ReadKey();

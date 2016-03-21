@@ -4,12 +4,12 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Web.Http;
+using System.Web.Hosting;
+using System.Configuration;
 
 using SlackSlashAzure.Models;
 using Redgate.Azure.ResourceManangement;
-using System.Web.Hosting;
-using System.Configuration;
-using Microsoft.Azure.Management.Sql.Models;
+using Redgate.Azure.ResourceManagement.Models;
 
 namespace SlackSlashAzure.Controllers
 {
@@ -61,9 +61,9 @@ namespace SlackSlashAzure.Controllers
 
         private SlackAttachment CreateAttachmentForDataWarehouse(Database dw)
         {
-            var attachment = new SlackAttachment() { title = dw.Name, title_link = $"https://portal.azure.com/#resource{dw.Id}", fallback = $"{dw.Name} {dw.Properties.Status} {dw.Properties.ServiceObjective}" };
+            var attachment = new SlackAttachment() { title = dw.Name, title_link = $"https://portal.azure.com/#resource{dw.Id}", fallback = $"{dw.Name} {dw.Status} {dw.ServiceObjective}" };
 
-            switch(dw.Properties.Status)
+            switch(dw.Status)
             {
                 case "Paused":
                 case "Pausing":
@@ -72,7 +72,7 @@ namespace SlackSlashAzure.Controllers
                 case "Online":
                 case "Resuming":
                     // Whitelist the "cheap" plans
-                    if(dw.Properties.ServiceObjective == "DW100" || dw.Properties.ServiceObjective == "DW200")
+                    if(dw.ServiceObjective == "DW100" || dw.ServiceObjective == "DW200")
                     {
                         attachment.color = "warning";
                     }
@@ -88,8 +88,10 @@ namespace SlackSlashAzure.Controllers
             }
 
             var fields = new SlackField[] {
-                new SlackField() { title = "Status", value = dw.Properties.Status, IsShort = true },
-                new SlackField() { title = "Service level", value = dw.Properties.ServiceObjective, IsShort = true }
+                new SlackField() { title = "Status", value = dw.Status, IsShort = true },
+                new SlackField() { title = "Service level", value = dw.ServiceObjective, IsShort = true },
+                new SlackField() { title = "Database Server", value = dw.DatabaseServer.Name, IsShort = true },
+                new SlackField() { title = "Resource Group", value = dw.DatabaseServer.ResourceGroup.Name, IsShort = true }
             };
             attachment.fields = fields;
             return attachment;
