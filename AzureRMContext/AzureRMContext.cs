@@ -14,7 +14,7 @@ using Microsoft.Rest;
 
 using Redgate.Azure.ResourceManagement.Models;
 
-namespace Redgate.Azure.ResourceManangement
+namespace Redgate.Azure.ResourceManagement
 {
     // Use this guide to set up the AD application, the service principal, and to grant it
     // the right role. (I used the portal to do the app and service principal, but needed

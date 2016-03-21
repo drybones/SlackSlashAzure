@@ -109,6 +109,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AzureRMContext.cs" />
+    <Compile Include="Helpers\AzureResourceHelper.cs" />
     <Compile Include="Models\Database.cs" />
     <Compile Include="Models\DatabaseServer.cs" />
     <Compile Include="Models\ResourceGroup.cs" />

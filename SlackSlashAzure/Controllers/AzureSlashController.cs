@@ -8,8 +8,9 @@ using System.Web.Hosting;
 using System.Configuration;
 
 using SlackSlashAzure.Models;
-using Redgate.Azure.ResourceManangement;
+using Redgate.Azure.ResourceManagement;
 using Redgate.Azure.ResourceManagement.Models;
+using Redgate.Azure.ResourceManagement.Helpers;
 
 namespace SlackSlashAzure.Controllers
 {
@@ -61,7 +62,7 @@ namespace SlackSlashAzure.Controllers
 
         private SlackAttachment CreateAttachmentForDataWarehouse(Database dw)
         {
-            var attachment = new SlackAttachment() { title = dw.Name, title_link = $"https://portal.azure.com/#resource{dw.Id}", fallback = $"{dw.Name} {dw.Status} {dw.ServiceObjective}" };
+            var attachment = new SlackAttachment() { title = dw.Name, title_link = AzureResourceHelper.GetUrlFromId(dw.Id), fallback = $"{dw.Name} {dw.Status} {dw.ServiceObjective}" };
 
             switch(dw.Status)
             {
@@ -90,8 +91,8 @@ namespace SlackSlashAzure.Controllers
             var fields = new SlackField[] {
                 new SlackField() { title = "Status", value = dw.Status, IsShort = true },
                 new SlackField() { title = "Service level", value = dw.ServiceObjective, IsShort = true },
-                new SlackField() { title = "Database Server", value = dw.DatabaseServer.Name, IsShort = true },
-                new SlackField() { title = "Resource Group", value = dw.DatabaseServer.ResourceGroup.Name, IsShort = true }
+                new SlackField() { title = "Server", value = $"<{AzureResourceHelper.GetUrlFromId(dw.DatabaseServer.Id)}|{dw.DatabaseServer.Name}>", IsShort = true },
+                new SlackField() { title = "Resource Group", value = $"<{AzureResourceHelper.GetUrlFromId(dw.DatabaseServer.ResourceGroup.Id)}|{dw.DatabaseServer.ResourceGroup.Name}>", IsShort = true }
             };
             attachment.fields = fields;
             return attachment;
