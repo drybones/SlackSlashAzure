@@ -65,7 +65,7 @@ namespace Redgate.Azure.ResourceManagement
             return authResult;
         }
 
-        public static IEnumerable<Database> GetDataWarehouses()
+        public static IEnumerable<Database> GetAllDataWarehouses()
         {
             var authResult = GetAuthenticationResult();
             var tokenCredentials = new TokenCredentials(authResult.AccessToken);
@@ -76,6 +76,7 @@ namespace Redgate.Azure.ResourceManagement
             string[] sep = new string[] { ",", ", ", " " };
             foreach (var subscriptionId in subscriptionIds.Split(sep, StringSplitOptions.RemoveEmptyEntries))
             {
+                var subscription = new Subscription() { Id = subscriptionId };
                 rmClient.SubscriptionId = subscriptionId;
                 var resourceGroups = rmClient.ResourceGroups.List();
 
@@ -84,7 +85,7 @@ namespace Redgate.Azure.ResourceManagement
 
                 foreach (var rg in resourceGroups)
                 {
-                    var resourceGroup = new ResourceGroup() { Id = rg.Id, Name = rg.Name, Location = rg.Location };
+                    var resourceGroup = new ResourceGroup() { Id = rg.Id, Name = rg.Name, Location = rg.Location, Subscription = subscription };
                     var servers = sqlClient.Servers.List(rg.Name);
                     foreach (var s in servers)
                     {
@@ -105,40 +106,15 @@ namespace Redgate.Azure.ResourceManagement
         public static IEnumerable<Database> PauseAllDataWarehouses()
         {
             var authResult = GetAuthenticationResult();
-            var tokenCredentials = new TokenCredentials(authResult.AccessToken);
-            var rmClient = new ResourceManagementClient(tokenCredentials);
 
-            var results = new List<Database>();
-
-            string[] sep = new string[] { ",", ", ", " " };
-            foreach (var subscriptionId in subscriptionIds.Split(sep, StringSplitOptions.RemoveEmptyEntries))
+            var onlineWarehouses = GetAllDataWarehouses().Where(dw => dw.Status == "Online");
+            foreach(var dw in onlineWarehouses)
             {
-                rmClient.SubscriptionId = subscriptionId;
-                var resourceGroups = rmClient.ResourceGroups.List();
-
-                var tokenCloudCredentials = new TokenCloudCredentials(subscriptionId, authResult.AccessToken);
+                var tokenCloudCredentials = new TokenCloudCredentials(dw.DatabaseServer.ResourceGroup.Subscription.Id, authResult.AccessToken);
                 var sqlClient = new SqlManagementClient(tokenCloudCredentials);
-
-                foreach (var rg in resourceGroups)
-                {
-                    var resourceGroup = new ResourceGroup() { Id = rg.Id, Name = rg.Name, Location = rg.Location };
-                    var servers = sqlClient.Servers.List(rg.Name);
-                    foreach (var s in servers)
-                    {
-                        var databaseServer = new DatabaseServer() { Id = s.Id, Name = s.Name, Location = s.Location, Version = s.Properties.Version, ResourceGroup = resourceGroup };
-                        var databases = sqlClient.Databases.List(rg.Name, s.Name);
-                        var warehouses = databases.Where(d => d.Properties.Edition == "DataWarehouse");
-                        var onlineWarehouses = warehouses.Where(dw => dw.Properties.Status == "Online");
-                        foreach (var w in onlineWarehouses)
-                        {
-                            sqlClient.DatabaseActivation.BeginPauseAsync(rg.Name, s.Name, w.Name);
-                            var warehouse = new Database() { Id = w.Id, Name = w.Name, Location = w.Location, Status = w.Properties.Status, Edition = w.Properties.Edition, ServiceObjective = w.Properties.ServiceObjective, DatabaseServer = databaseServer };
-                            results.Add(warehouse);
-                        }
-                    }
-                }
+                sqlClient.DatabaseActivation.BeginPauseAsync(dw.DatabaseServer.ResourceGroup.Name, dw.DatabaseServer.Name, dw.Name);
             }
-            return results;
+            return onlineWarehouses;
         }
     }
 }

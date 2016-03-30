@@ -113,6 +113,7 @@
     <Compile Include="Models\Database.cs" />
     <Compile Include="Models\DatabaseServer.cs" />
     <Compile Include="Models\ResourceGroup.cs" />
+    <Compile Include="Models\Subscription.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

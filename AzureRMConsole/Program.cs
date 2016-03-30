@@ -12,7 +12,7 @@ namespace AzureRMConsole
     {
         static void Main(string[] args)
         {
-            var warehouses = AzureRMContext.GetDataWarehouses();
+            var warehouses = AzureRMContext.GetAllDataWarehouses();
             foreach (var warehouse in warehouses)
             {
                 Console.WriteLine($"{warehouse.Name}\n{warehouse.Status}\n{warehouse.ServiceObjective}\n{warehouse.DatabaseServer.Name}\n{warehouse.DatabaseServer.ResourceGroup.Name}\n");
