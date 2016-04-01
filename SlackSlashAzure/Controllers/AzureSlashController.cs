@@ -14,6 +14,8 @@ using Redgate.Azure.ResourceManagement.Helpers;
 
 namespace SlackSlashAzure.Controllers
 {
+    enum AttachmentStyle { Verbose, Summary, NameOnly };
+
     public class AzureSlashController : ApiController
     {
         public IHttpActionResult Post(SlashRequest req)
@@ -69,11 +71,11 @@ namespace SlackSlashAzure.Controllers
             }
         }
 
-        private SlackAttachment CreateAttachmentForDataWarehouse(Database dw)
+        private SlackAttachment CreateAttachmentForDataWarehouse(Database dw, AttachmentStyle attachmentStyle = AttachmentStyle.Summary)
         {
             var attachment = new SlackAttachment() { title = dw.Name, title_link = AzureResourceHelper.GetResourceUrl(dw.Id), fallback = $"{dw.Name} {dw.Status} {dw.ServiceObjective}" };
 
-            switch(dw.Status)
+            switch (dw.Status)
             {
                 case "Paused":
                 case "Pausing":
@@ -82,7 +84,7 @@ namespace SlackSlashAzure.Controllers
                 case "Online":
                 case "Resuming":
                     // Whitelist the "cheap" plans
-                    if(dw.ServiceObjective == "DW100" || dw.ServiceObjective == "DW200")
+                    if (dw.ServiceObjective == "DW100" || dw.ServiceObjective == "DW200")
                     {
                         attachment.color = "warning";
                     }
@@ -97,17 +99,22 @@ namespace SlackSlashAzure.Controllers
                     break;
             }
 
-            var fields = new SlackField[] {
-                new SlackField() { title = "Status", value = dw.Status, IsShort = true },
-                new SlackField() { title = "Service level", value = dw.ServiceObjective, IsShort = true },
-                new SlackField() { title = "Server", value = $"<{AzureResourceHelper.GetResourceUrl(dw.DatabaseServer.Id)}|{dw.DatabaseServer.Name}>", IsShort = true },
-                new SlackField() { title = "Resource Group", value = $"<{AzureResourceHelper.GetResourceGroupUrl(dw.DatabaseServer.ResourceGroup.Id)}|{dw.DatabaseServer.ResourceGroup.Name}>", IsShort = true }
-            };
-            attachment.fields = fields;
+            if (attachmentStyle != AttachmentStyle.NameOnly)
+            {
+                var fields = new List<SlackField>();
+                fields.Add(new SlackField() { title = "Status", value = dw.Status, IsShort = true });
+                fields.Add(new SlackField() { title = "Service level", value = dw.ServiceObjective, IsShort = true });
+                if (attachmentStyle == AttachmentStyle.Verbose)
+                {
+                    fields.Add(new SlackField() { title = "Server", value = $"<{AzureResourceHelper.GetResourceUrl(dw.DatabaseServer.Id)}|{dw.DatabaseServer.Name}>", IsShort = true });
+                    fields.Add(new SlackField() { title = "Resource Group", value = $"<{AzureResourceHelper.GetResourceGroupUrl(dw.DatabaseServer.ResourceGroup.Id)}|{dw.DatabaseServer.ResourceGroup.Name}>", IsShort = true });
+                }
+                attachment.fields = fields.ToArray();
+            }
             return attachment;
         }
 
-        private void PauseAllDataWarehouses(string responseUrl)
+        private async void PauseAllDataWarehouses(string responseUrl)
         {
             var onlineWarehouses = AzureRMContext.GetOnlineDataWarehouses();
             SlashResponse resp = null;
@@ -122,12 +129,17 @@ namespace SlackSlashAzure.Controllers
                 var attachments = new List<SlackAttachment>();
                 foreach (var dw in onlineWarehouses)
                 {
-                    attachments.Add(CreateAttachmentForDataWarehouse(dw));
+                    attachments.Add(CreateAttachmentForDataWarehouse(dw, AttachmentStyle.NameOnly));
                 }
                 resp.attachments = attachments.ToArray();
             }
 
-            foreach(var dw in onlineWarehouses)
+            using (var client = new HttpClient())
+            {
+                await client.PostAsJsonAsync(responseUrl, resp);
+            }
+
+            foreach (var dw in onlineWarehouses)
             {
                 HostingEnvironment.QueueBackgroundWorkItem(ct => PauseDataWarehouse(responseUrl, dw));
             }
