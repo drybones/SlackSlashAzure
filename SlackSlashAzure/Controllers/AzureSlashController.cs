@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Web.Http;
 using System.Web.Hosting;
 using System.Configuration;
+using System.Diagnostics;
 
 using SlackSlashAzure.Models;
 using Redgate.Azure.ResourceManagement;
@@ -18,6 +19,8 @@ namespace SlackSlashAzure.Controllers
 
     public class AzureSlashController : ApiController
     {
+        private string responseUrl;
+
         public IHttpActionResult Post(SlashRequest req)
         {
             string[] sep = new string[] { ",", ", ", " " };
@@ -34,19 +37,21 @@ namespace SlackSlashAzure.Controllers
                 {
                     case "dw":
                         result = new SlashResponse() { text = $"_Getting data from Azure..._", response_type = "in_channel" };
-                        HostingEnvironment.QueueBackgroundWorkItem(ct => GetAllDataWarehouses(req.response_url));
+                        HostingEnvironment.QueueBackgroundWorkItem(ct => GetAllDataWarehouses());
                         break;
                     case "dw pause":
                         result = new SlashResponse() { text = $"_Getting data from Azure..._", response_type = "in_channel" };
-                        HostingEnvironment.QueueBackgroundWorkItem(ct => PauseAllDataWarehouses(req.response_url));
+                        HostingEnvironment.QueueBackgroundWorkItem(ct => PauseAllDataWarehouses());
                         break;
                 }
             }
 
+            responseUrl = req.response_url;
+
             return Ok(result);
         }
 
-        private async void GetAllDataWarehouses(string responseUrl)
+        private async void GetAllDataWarehouses()
         {
             var dataWarehouses = AzureRMContext.GetAllDataWarehouses();
             SlashResponse resp = null;
@@ -65,10 +70,7 @@ namespace SlackSlashAzure.Controllers
                 }
                 resp.attachments = attachments.ToArray();
             }
-            using (var client = new HttpClient())
-            {
-                await client.PostAsJsonAsync(responseUrl, resp);
-            }
+            PostAsyncResponse(resp);
         }
 
         private SlackAttachment CreateAttachmentForDataWarehouse(Database dw, AttachmentStyle attachmentStyle = AttachmentStyle.Summary)
@@ -114,7 +116,7 @@ namespace SlackSlashAzure.Controllers
             return attachment;
         }
 
-        private async void PauseAllDataWarehouses(string responseUrl)
+        private async void PauseAllDataWarehouses()
         {
             var onlineWarehouses = AzureRMContext.GetOnlineDataWarehouses();
             SlashResponse resp = null;
@@ -134,24 +136,35 @@ namespace SlackSlashAzure.Controllers
                 resp.attachments = attachments.ToArray();
             }
 
-            using (var client = new HttpClient())
-            {
-                await client.PostAsJsonAsync(responseUrl, resp);
-            }
+            PostAsyncResponse(resp);
 
             foreach (var dw in onlineWarehouses)
             {
-                HostingEnvironment.QueueBackgroundWorkItem(ct => PauseDataWarehouse(responseUrl, dw));
+                HostingEnvironment.QueueBackgroundWorkItem(ct => PauseDataWarehouse(dw));
             }
         }
 
-        private async void PauseDataWarehouse(string responseUrl, Database dataWarehouse)
+        private async void PauseDataWarehouse(Database dataWarehouse)
         {
-            using (var client = new HttpClient())
+            var requestId = AzureRMContext.PauseDataWarehouse(dataWarehouse);
+            var resp = new SlashResponse() { text = $"Request to pause `{dataWarehouse.Name}` accepted, request_id `{requestId}`", response_type = "in_channel" };
+            PostAsyncResponse(resp);
+        }
+
+        private async void PostAsyncResponse(SlashResponse response)
+        {
+            if(responseUrl != null && responseUrl != String.Empty)
             {
-                var requestId = AzureRMContext.PauseDataWarehouse(dataWarehouse);
-                var resp = new SlashResponse() { text = $"Request to pause `{dataWarehouse.Name}` accepted, request_id `{requestId}`", response_type = "in_channel" };
-                await client.PostAsJsonAsync(responseUrl, resp);
+                using (var client = new HttpClient())
+                {
+                    try {
+                        await client.PostAsJsonAsync(responseUrl, response);
+                    }
+                    catch (Exception e)
+                    {
+                        Trace.TraceError(e.Message);
+                    }
+                }
             }
         }
     }
