@@ -107,20 +107,22 @@ namespace Redgate.Azure.ResourceManagement
             return results;
         }
 
-        public static IEnumerable<Database> PauseAllDataWarehouses()
+        public static IEnumerable<Database> GetOnlineDataWarehouses()
         {
             var authResult = GetAuthenticationResult();
-
             var onlineWarehouses = GetAllDataWarehouses().Where(dw => dw.Status == "Online");
-            Trace.TraceInformation($"AzureRMContext:PauseAllDataWarehouses: Found {onlineWarehouses.Count()} datawarehouse(s) to pause.");
-            foreach (var dw in onlineWarehouses)
-            {
-                var tokenCloudCredentials = new TokenCloudCredentials(dw.DatabaseServer.ResourceGroup.Subscription.Id, authResult.AccessToken);
-                var sqlClient = new SqlManagementClient(tokenCloudCredentials);
-                sqlClient.DatabaseActivation.BeginPauseAsync(dw.DatabaseServer.ResourceGroup.Name, dw.DatabaseServer.Name, dw.Name);
-                Trace.TraceInformation($"AzureRMContext:PauseAllDataWarehouses: Called BeginPauseAsync for {dw.Name}");
-            }
+            Trace.TraceInformation($"AzureRMContext:PauseAllDataWarehouses: Found {onlineWarehouses.Count()} online datawarehouse(s).");
             return onlineWarehouses;
+        }
+
+        public static string PauseDataWarehouse(Database dataWarehouse)
+        {
+            var authResult = GetAuthenticationResult();
+            var tokenCloudCredentials = new TokenCloudCredentials(dataWarehouse.DatabaseServer.ResourceGroup.Subscription.Id, authResult.AccessToken);
+            var sqlClient = new SqlManagementClient(tokenCloudCredentials);
+            var response = sqlClient.DatabaseActivation.BeginPause(dataWarehouse.DatabaseServer.ResourceGroup.Name, dataWarehouse.DatabaseServer.Name, dataWarehouse.Name);
+            Trace.TraceInformation($"AzureRMContext:PauseAllDataWarehouses: Called BeginPauseAsync for {dataWarehouse.Name}");
+            return response.RequestId;
         }
     }
 }

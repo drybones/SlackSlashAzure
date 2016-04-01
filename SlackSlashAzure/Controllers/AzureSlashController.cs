@@ -107,12 +107,12 @@ namespace SlackSlashAzure.Controllers
             return attachment;
         }
 
-        private async void PauseAllDataWarehouses(string responseUrl)
+        private void PauseAllDataWarehouses(string responseUrl)
         {
-            var pausedWarehouses = AzureRMContext.PauseAllDataWarehouses();
+            var onlineWarehouses = AzureRMContext.GetOnlineDataWarehouses();
             SlashResponse resp = null;
 
-            if (pausedWarehouses.Count() < 1)
+            if (onlineWarehouses.Count() < 1)
             {
                 resp = new SlashResponse() { text = "Couldn't find any online data warehouses.", response_type = "in_channel" };
             }
@@ -120,14 +120,25 @@ namespace SlackSlashAzure.Controllers
             {
                 resp = new SlashResponse() { text = "Found these online ones. I'll pause them.", response_type = "in_channel" };
                 var attachments = new List<SlackAttachment>();
-                foreach (var dw in pausedWarehouses)
+                foreach (var dw in onlineWarehouses)
                 {
                     attachments.Add(CreateAttachmentForDataWarehouse(dw));
                 }
                 resp.attachments = attachments.ToArray();
             }
+
+            foreach(var dw in onlineWarehouses)
+            {
+                HostingEnvironment.QueueBackgroundWorkItem(ct => PauseDataWarehouse(responseUrl, dw));
+            }
+        }
+
+        private async void PauseDataWarehouse(string responseUrl, Database dataWarehouse)
+        {
             using (var client = new HttpClient())
             {
+                var requestId = AzureRMContext.PauseDataWarehouse(dataWarehouse);
+                var resp = new SlashResponse() { text = $"Request to pause `{dataWarehouse.Name}` accepted, request_id `{requestId}`", response_type = "in_channel" };
                 await client.PostAsJsonAsync(responseUrl, resp);
             }
         }
