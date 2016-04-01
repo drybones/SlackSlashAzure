@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Configuration;
 using System.Globalization;
+using System.Diagnostics;
 
 using Microsoft.Azure;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
@@ -56,9 +57,8 @@ namespace Redgate.Azure.ResourceManagement
             }
             catch (AdalException ex)
             {
-                Console.WriteLine(
-                    String.Format("An error occurred while acquiring a token\nTime: {0}\nError: {1}\n",
-                    DateTime.Now.ToString(),
+                Trace.TraceError(
+                    String.Format("AzureRMContext:GetAuthenticationResult: An error occurred while acquiring a token.\nError: {1}\n",
                     ex.ToString()));
             }
 
@@ -72,10 +72,11 @@ namespace Redgate.Azure.ResourceManagement
             var rmClient = new ResourceManagementClient(tokenCredentials);
 
             var results = new List<Database>();
-
+            
             string[] sep = new string[] { ",", ", ", " " };
             foreach (var subscriptionId in subscriptionIds.Split(sep, StringSplitOptions.RemoveEmptyEntries))
             {
+                Trace.TraceInformation($"AzureRmContext:GetAllDataWarehouses: Searching subscription {subscriptionId}");
                 var subscription = new Subscription() { Id = subscriptionId };
                 rmClient.SubscriptionId = subscriptionId;
                 var resourceGroups = rmClient.ResourceGroups.List();
@@ -85,15 +86,18 @@ namespace Redgate.Azure.ResourceManagement
 
                 foreach (var rg in resourceGroups)
                 {
+                    Trace.TraceInformation($"AzureRmContext:GetAllDataWarehouses: Searching resourceGroup {rg.Name}");
                     var resourceGroup = new ResourceGroup() { Id = rg.Id, Name = rg.Name, Location = rg.Location, Subscription = subscription };
                     var servers = sqlClient.Servers.List(rg.Name);
                     foreach (var s in servers)
                     {
+                        Trace.TraceInformation($"AzureRmContext:GetAllDataWarehouses: Searching server {s.Name}");
                         var databaseServer = new DatabaseServer() { Id = s.Id, Name = s.Name, Location = s.Location, Version = s.Properties.Version, ResourceGroup = resourceGroup };
                         var databases = sqlClient.Databases.List(rg.Name, s.Name);
                         var warehouses = databases.Where(d => d.Properties.Edition == "DataWarehouse");
                         foreach(var w in warehouses)
                         {
+                            Trace.TraceInformation($"AzureRmContext:GetAllDataWarehouses: Found warehouse {w.Name}");
                             var warehouse = new Database() { Id = w.Id, Name = w.Name, Location = w.Location, Status = w.Properties.Status, Edition = w.Properties.Edition, ServiceObjective = w.Properties.ServiceObjective, DatabaseServer = databaseServer };
                             results.Add(warehouse);                            
                         }
@@ -108,11 +112,13 @@ namespace Redgate.Azure.ResourceManagement
             var authResult = GetAuthenticationResult();
 
             var onlineWarehouses = GetAllDataWarehouses().Where(dw => dw.Status == "Online");
-            foreach(var dw in onlineWarehouses)
+            Trace.TraceInformation($"AzureRMContext:PauseAllDataWarehouses: Found {onlineWarehouses.Count()} datawarehouse(s) to pause.");
+            foreach (var dw in onlineWarehouses)
             {
                 var tokenCloudCredentials = new TokenCloudCredentials(dw.DatabaseServer.ResourceGroup.Subscription.Id, authResult.AccessToken);
                 var sqlClient = new SqlManagementClient(tokenCloudCredentials);
                 sqlClient.DatabaseActivation.BeginPauseAsync(dw.DatabaseServer.ResourceGroup.Name, dw.DatabaseServer.Name, dw.Name);
+                Trace.TraceInformation($"AzureRMContext:PauseAllDataWarehouses: Called BeginPauseAsync for {dw.Name}");
             }
             return onlineWarehouses;
         }
