@@ -39,6 +39,8 @@ namespace Redgate.Azure.ResourceManagement
         private static AuthenticationContext authContext = null;
         private static ClientCredential clientCredential = null;
 
+        private const string PauseSupressionKey = "DoNotPause";
+
         static AzureRMContext()
         {
             authContext = new AuthenticationContext(authority);
@@ -113,7 +115,7 @@ namespace Redgate.Azure.ResourceManagement
         public static IEnumerable<Database> GetOnlineDataWarehouses()
         {
             var authResult = GetAuthenticationResult();
-            var onlineWarehouses = GetAllDataWarehouses().Where(dw => dw.Status == "Online");
+            var onlineWarehouses = GetAllDataWarehouses().Where(dw => dw.Status == "Online" && (dw.Tags == null || !dw.Tags.Keys.Contains(PauseSupressionKey)));
             Trace.TraceInformation($"AzureRMContext:PauseAllDataWarehouses: Found {onlineWarehouses.Count()} online datawarehouse(s).");
             return onlineWarehouses;
         }
