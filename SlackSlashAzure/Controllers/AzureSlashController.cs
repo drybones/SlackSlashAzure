@@ -39,6 +39,10 @@ namespace SlackSlashAzure.Controllers
                         result = new SlashResponse() { text = $"_Getting data from Azure..._", response_type = "in_channel" };
                         HostingEnvironment.QueueBackgroundWorkItem(ct => GetAllDataWarehouses());
                         break;
+                    case "dw verbose":
+                        result = new SlashResponse() { text = $"_Getting data from Azure..._", response_type = "in_channel" };
+                        HostingEnvironment.QueueBackgroundWorkItem(ct => GetAllDataWarehouses(AttachmentStyle.Verbose));
+                        break;
                     case "dw pause":
                         result = new SlashResponse() { text = $"_Getting data from Azure..._", response_type = "in_channel" };
                         HostingEnvironment.QueueBackgroundWorkItem(ct => PauseAllDataWarehouses());
@@ -51,7 +55,7 @@ namespace SlackSlashAzure.Controllers
             return Ok(result);
         }
 
-        private async void GetAllDataWarehouses()
+        private async void GetAllDataWarehouses(AttachmentStyle attachmentStyle = AttachmentStyle.Summary)
         {
             var dataWarehouses = AzureRMContext.GetAllDataWarehouses();
             SlashResponse resp = null;
@@ -66,7 +70,7 @@ namespace SlackSlashAzure.Controllers
                 var attachments = new List<SlackAttachment>();
                 foreach (var dw in dataWarehouses)
                 {
-                    attachments.Add(CreateAttachmentForDataWarehouse(dw));
+                    attachments.Add(CreateAttachmentForDataWarehouse(dw, attachmentStyle));
                 }
                 resp.attachments = attachments.ToArray();
             }
@@ -110,6 +114,10 @@ namespace SlackSlashAzure.Controllers
                 {
                     fields.Add(new SlackField() { title = "Server", value = $"<{AzureResourceHelper.GetResourceUrl(dw.DatabaseServer.Id)}|{dw.DatabaseServer.Name}>", IsShort = true });
                     fields.Add(new SlackField() { title = "Resource Group", value = $"<{AzureResourceHelper.GetResourceGroupUrl(dw.DatabaseServer.ResourceGroup.Id)}|{dw.DatabaseServer.ResourceGroup.Name}>", IsShort = true });
+                    foreach(var t in dw.Tags)
+                    {
+                        fields.Add(new SlackField() { title = t.Key, value = t.Value, IsShort = true });
+                    }
                 }
                 attachment.fields = fields.ToArray();
             }

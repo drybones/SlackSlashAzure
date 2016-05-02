@@ -58,8 +58,9 @@ namespace Redgate.Azure.ResourceManagement
             catch (AdalException ex)
             {
                 Trace.TraceError(
-                    String.Format("AzureRMContext:GetAuthenticationResult: An error occurred while acquiring a token.\nError: {1}\n",
+                    String.Format("AzureRMContext:GetAuthenticationResult: An error occurred while acquiring a token.\nError: {0}\n",
                     ex.ToString()));
+                throw ex;
             }
 
             return authResult;
@@ -80,6 +81,7 @@ namespace Redgate.Azure.ResourceManagement
                 var subscription = new Subscription() { Id = subscriptionId };
                 rmClient.SubscriptionId = subscriptionId;
                 var resourceGroups = rmClient.ResourceGroups.List();
+                var allDatabases = rmClient.Resources.List().Where(r => r.Type == "Microsoft.Sql/servers/databases"); // Tags aren't returned from the SQL Client -- grab them now
 
                 var tokenCloudCredentials = new TokenCloudCredentials(subscriptionId, authResult.AccessToken);
                 var sqlClient = new SqlManagementClient(tokenCloudCredentials);
@@ -99,6 +101,7 @@ namespace Redgate.Azure.ResourceManagement
                         {
                             Trace.TraceInformation($"AzureRmContext:GetAllDataWarehouses: Found warehouse {w.Name}");
                             var warehouse = new Database() { Id = w.Id, Name = w.Name, Location = w.Location, Status = w.Properties.Status, Edition = w.Properties.Edition, ServiceObjective = w.Properties.ServiceObjective, DatabaseServer = databaseServer };
+                            warehouse.Tags = allDatabases.First(r => r.Id == w.Id)?.Tags;
                             results.Add(warehouse);                            
                         }
                     }

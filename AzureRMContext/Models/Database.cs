@@ -15,5 +15,6 @@ namespace Redgate.Azure.ResourceManagement.Models
         public string ServiceObjective { get; set; }
         public string Status { get; set; }
         public DatabaseServer DatabaseServer { get; set; }
+        public IDictionary<string, string> Tags { get; set; }
     }
 }

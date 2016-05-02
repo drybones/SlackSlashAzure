@@ -16,8 +16,12 @@ namespace AzureRMConsole
             foreach (var warehouse in warehouses)
             {
                 Console.WriteLine($"{warehouse.Name}\n{warehouse.Status}\n{warehouse.ServiceObjective}\n{warehouse.DatabaseServer.Name}\n{warehouse.DatabaseServer.ResourceGroup.Name}\n");
+                foreach (var t in warehouse.Tags)
+                {
+                    Console.WriteLine($"{t.Key}: {t.Value}");
+                }
             }
-            Console.WriteLine("Done. Press any key to close.");
+            Console.WriteLine("\nDone. Press any key to close.");
             Console.ReadKey();
         }
     }
