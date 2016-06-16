@@ -81,36 +81,30 @@ namespace Redgate.Azure.ResourceManagement
             foreach (var subscriptionId in subscriptionIds.Split(sep, StringSplitOptions.RemoveEmptyEntries))
             {
                 Trace.TraceInformation($"AzureRmContext:GetAllDataWarehouses: Searching subscription {subscriptionId}");
-                var subscription = new Subscription() { Id = subscriptionId };
                 rmClient.SubscriptionId = subscriptionId;
 
                 var resourceGroups = rmClient.ResourceGroups.List();
-                var allDatabases = rmClient.Resources.List().Where(r => r.Type == "Microsoft.Sql/servers/databases"); // Tags aren't returned from the SQL Client -- grab them now
-
-                var resourceGroupsWithDatabases = allDatabases.Select(db => AzureResourceHelper.GetResourceGroupName(db.Id)).Distinct();
+                var allDatabases = rmClient.Resources.List(new Microsoft.Rest.Azure.OData.ODataQuery<Microsoft.Azure.Management.Resources.Models.GenericResourceFilter>("$filter=ResourceType eq 'Microsoft.Sql/servers/databases'") ).Where(r => r.Type == "Microsoft.Sql/servers/databases");
 
                 var tokenCloudCredentials = new TokenCloudCredentials(subscriptionId, authResult.AccessToken);
                 var sqlClient = new SqlManagementClient(tokenCloudCredentials);
 
-                // Only enumerate the resource groups we know have at least one database
-                foreach (var rg in resourceGroups.Where(rg => resourceGroupsWithDatabases.Contains(rg.Name)))
+                foreach(var db in allDatabases)
                 {
-                    Trace.TraceInformation($"AzureRmContext:GetAllDataWarehouses: Searching resourceGroup {rg.Name}");
-                    var resourceGroup = new ResourceGroup() { Id = rg.Id, Name = rg.Name, Location = rg.Location, Subscription = subscription };
-                    var servers = sqlClient.Servers.List(rg.Name);
-                    foreach (var s in servers)
+                    var databaseName = AzureResourceHelper.GetDatabaseName(db.Id);
+                    var resourceGroupName = AzureResourceHelper.GetResourceGroupName(db.Id);
+                    var sqlServerName = AzureResourceHelper.GetSqlServerName(db.Id);
+                    var w = sqlClient.Databases.Get(resourceGroupName, sqlServerName, databaseName).Database;
+                    if (w.Properties.Edition == "DataWarehouse")
                     {
-                        Trace.TraceInformation($"AzureRmContext:GetAllDataWarehouses: Searching server {s.Name}");
-                        var databaseServer = new DatabaseServer() { Id = s.Id, Name = s.Name, Location = s.Location, Version = s.Properties.Version, ResourceGroup = resourceGroup };
-                        var databases = sqlClient.Databases.List(rg.Name, s.Name);
-                        var warehouses = databases.Where(d => d.Properties.Edition == "DataWarehouse");
-                        foreach(var w in warehouses)
-                        {
-                            Trace.TraceInformation($"AzureRmContext:GetAllDataWarehouses: Found warehouse {w.Name}");
-                            var warehouse = new Database() { Id = w.Id, Name = w.Name, Location = w.Location, Status = w.Properties.Status, Edition = w.Properties.Edition, ServiceObjective = w.Properties.ServiceObjective, DatabaseServer = databaseServer };
-                            warehouse.Tags = allDatabases.First(r => r.Id == w.Id)?.Tags;
-                            results.Add(warehouse);                            
-                        }
+                        Trace.TraceInformation($"AzureRmContext:GetAllDataWarehouses: Found warehouse {w.Name}");
+                        var warehouse = new Database() { Id = w.Id, Name = w.Name, Location = w.Location, Status = w.Properties.Status, Edition = w.Properties.Edition, ServiceObjective = w.Properties.ServiceObjective, SqlServerName = sqlServerName, ResourceGroupName = resourceGroupName, SubscriptionId = subscriptionId };
+                        warehouse.Tags = allDatabases.First(r => r.Id == w.Id)?.Tags; // Tags only get returned on the orginal resources API call
+                        results.Add(warehouse);
+                    }
+                    else
+                    {
+                        Trace.TraceInformation($"AzureRmContext:GetAllDataWarehouses: Tried {w.Name}. It wasn't a warehouse.");
                     }
                 }
             }
@@ -128,9 +122,9 @@ namespace Redgate.Azure.ResourceManagement
         public static string PauseDataWarehouse(Database dataWarehouse)
         {
             var authResult = GetAuthenticationResult();
-            var tokenCloudCredentials = new TokenCloudCredentials(dataWarehouse.DatabaseServer.ResourceGroup.Subscription.Id, authResult.AccessToken);
+            var tokenCloudCredentials = new TokenCloudCredentials(dataWarehouse.SubscriptionId, authResult.AccessToken);
             var sqlClient = new SqlManagementClient(tokenCloudCredentials);
-            var response = sqlClient.DatabaseActivation.BeginPause(dataWarehouse.DatabaseServer.ResourceGroup.Name, dataWarehouse.DatabaseServer.Name, dataWarehouse.Name);
+            var response = sqlClient.DatabaseActivation.BeginPause(dataWarehouse.ResourceGroupName, dataWarehouse.SqlServerName, dataWarehouse.Name);
             Trace.TraceInformation($"AzureRMContext:PauseAllDataWarehouses: Called BeginPauseAsync for {dataWarehouse.Name}");
             return response.RequestId;
         }

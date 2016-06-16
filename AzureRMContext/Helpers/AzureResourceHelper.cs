@@ -10,6 +10,8 @@ namespace Redgate.Azure.ResourceManagement.Helpers
     {
         private const string ResourceUrlFormatString = @"https://portal.azure.com/#resource{0}";
         private const string ResourceGroupUrlFormatString = @"https://portal.azure.com/#asset/HubsExtension/ResourceGroups{0}";
+        private const string ResourceIdForSqlServerFormatString = @"/subscriptions/{0}/resourceGroups/{1}";
+        private const string ResourceIdForResourceGroupFormatString = @"/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Sql/servers/{2}";
 
         public static string GetResourceUrl(string resourceId)
         {
@@ -18,6 +20,23 @@ namespace Redgate.Azure.ResourceManagement.Helpers
         public static string GetResourceGroupUrl(string resourceGroupId)
         {
             return String.Format(ResourceGroupUrlFormatString, resourceGroupId);
+        }
+        public static string GetSqlServerResourceId(string subscriptionId, string resourceGroupName, string sqlServerName)
+        {
+            return String.Format(ResourceIdForSqlServerFormatString, subscriptionId, resourceGroupName, sqlServerName);
+        }
+        public static string GetResourceGroupResourceId(string subscriptionId, string resourceGroupName)
+        {
+            return String.Format(ResourceIdForResourceGroupFormatString, subscriptionId, resourceGroupName);
+        }
+
+        public static string GetSqlServerName(string resourceId)
+        {
+            return GetNextSegmentAfter(resourceId: resourceId, segmentName: "Microsoft.Sql/servers");
+        }
+        public static string GetDatabaseName(string resourceId)
+        {
+            return GetNextSegmentAfter(resourceId: resourceId, segmentName: "databases");
         }
 
         // Random helper bits copied from 

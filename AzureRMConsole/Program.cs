@@ -15,7 +15,7 @@ namespace AzureRMConsole
             var warehouses = AzureRMContext.GetAllDataWarehouses();
             foreach (var warehouse in warehouses)
             {
-                Console.WriteLine($"{warehouse.Name}\n{warehouse.Status}\n{warehouse.ServiceObjective}\n{warehouse.DatabaseServer.Name}\n{warehouse.DatabaseServer.ResourceGroup.Name}\n");
+                Console.WriteLine($"{warehouse.Name}\n{warehouse.Status}\n{warehouse.ServiceObjective}\n{warehouse.SqlServerName}\n{warehouse.ResourceGroupName}\n");
                 if (warehouse.Tags != null)
                 {
                     foreach (var t in warehouse.Tags)

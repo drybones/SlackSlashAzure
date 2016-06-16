@@ -112,8 +112,8 @@ namespace SlackSlashAzure.Controllers
                 fields.Add(new SlackField() { title = "Service level", value = dw.ServiceObjective, IsShort = true });
                 if (attachmentStyle == AttachmentStyle.Verbose)
                 {
-                    fields.Add(new SlackField() { title = "Server", value = $"<{AzureResourceHelper.GetResourceUrl(dw.DatabaseServer.Id)}|{dw.DatabaseServer.Name}>", IsShort = true });
-                    fields.Add(new SlackField() { title = "Resource Group", value = $"<{AzureResourceHelper.GetResourceGroupUrl(dw.DatabaseServer.ResourceGroup.Id)}|{dw.DatabaseServer.ResourceGroup.Name}>", IsShort = true });
+                    fields.Add(new SlackField() { title = "Server", value = $"<{AzureResourceHelper.GetResourceUrl(AzureResourceHelper.GetSqlServerResourceId(dw.SubscriptionId, dw.ResourceGroupName, dw.SqlServerName))}|{dw.SqlServerName}>", IsShort = true });
+                    fields.Add(new SlackField() { title = "Resource Group", value = $"<{AzureResourceHelper.GetResourceGroupUrl(AzureResourceHelper.GetResourceGroupResourceId(dw.SubscriptionId, dw.ResourceGroupName))}|{dw.ResourceGroupName}>", IsShort = true });
                     if (dw.Tags != null)
                     {
                         foreach (var t in dw.Tags)

@@ -14,7 +14,9 @@ namespace Redgate.Azure.ResourceManagement.Models
         public string Edition { get; set; }
         public string ServiceObjective { get; set; }
         public string Status { get; set; }
-        public DatabaseServer DatabaseServer { get; set; }
+        public string SqlServerName { get; set; }
+        public string ResourceGroupName { get; set; }
+        public string SubscriptionId { get; set; }
         public IDictionary<string, string> Tags { get; set; }
     }
 }
