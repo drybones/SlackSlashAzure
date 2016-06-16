@@ -14,6 +14,7 @@ using Microsoft.Azure.Management.Sql;
 using Microsoft.Rest;
 
 using Redgate.Azure.ResourceManagement.Models;
+using Redgate.Azure.ResourceManagement.Helpers;
 
 namespace Redgate.Azure.ResourceManagement
 {
@@ -82,13 +83,17 @@ namespace Redgate.Azure.ResourceManagement
                 Trace.TraceInformation($"AzureRmContext:GetAllDataWarehouses: Searching subscription {subscriptionId}");
                 var subscription = new Subscription() { Id = subscriptionId };
                 rmClient.SubscriptionId = subscriptionId;
+
                 var resourceGroups = rmClient.ResourceGroups.List();
                 var allDatabases = rmClient.Resources.List().Where(r => r.Type == "Microsoft.Sql/servers/databases"); // Tags aren't returned from the SQL Client -- grab them now
+
+                var resourceGroupsWithDatabases = allDatabases.Select(db => AzureResourceHelper.GetResourceGroupName(db.Id)).Distinct();
 
                 var tokenCloudCredentials = new TokenCloudCredentials(subscriptionId, authResult.AccessToken);
                 var sqlClient = new SqlManagementClient(tokenCloudCredentials);
 
-                foreach (var rg in resourceGroups)
+                // Only enumerate the resource groups we know have at least one database
+                foreach (var rg in resourceGroups.Where(rg => resourceGroupsWithDatabases.Contains(rg.Name)))
                 {
                     Trace.TraceInformation($"AzureRmContext:GetAllDataWarehouses: Searching resourceGroup {rg.Name}");
                     var resourceGroup = new ResourceGroup() { Id = rg.Id, Name = rg.Name, Location = rg.Location, Subscription = subscription };
