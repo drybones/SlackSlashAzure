@@ -10,8 +10,8 @@ namespace Redgate.Azure.ResourceManagement.Helpers
     {
         private const string ResourceUrlFormatString = @"https://portal.azure.com/#resource{0}";
         private const string ResourceGroupUrlFormatString = @"https://portal.azure.com/#asset/HubsExtension/ResourceGroups{0}";
-        private const string ResourceIdForSqlServerFormatString = @"/subscriptions/{0}/resourceGroups/{1}";
-        private const string ResourceIdForResourceGroupFormatString = @"/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Sql/servers/{2}";
+        private const string ResourceIdForSqlServerFormatString = @"/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Sql/servers/{2}";
+        private const string ResourceIdForResourceGroupFormatString = @"/subscriptions/{0}/resourceGroups/{1}";
 
         public static string GetResourceUrl(string resourceId)
         {
